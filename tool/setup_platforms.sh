@@ -22,7 +22,7 @@ cp -r tool/android/res/. android/app/src/main/res/
 cp -r tool/icon/res/. android/app/src/main/res/
 cp tool/android/proguard-rules.pro android/app/proguard-rules.pro
 # androidx.core per FileProvider
-G=$(ls android/app/build.gradle.kts android/app/build.gradle 2>/dev/null | head -1)
+G=$(ls android/app/build.gradle.kts android/app/build.gradle 2>/dev/null | head -1 || true)
 if [[ "$G" == *.kts ]]; then
   printf '\ndependencies {\n    implementation("androidx.core:core-ktx:1.13.1")\n}\n' >> "$G"
 else
