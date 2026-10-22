@@ -1,0 +1,25 @@
+name: d_space_lab
+description: Mappa dello spazio, documenti scaduti e doppioni, cestino di sicurezza.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  path_provider: ^2.1.6
+  google_fonts: ^6.2.1
+  google_mlkit_text_recognition: ^0.17.1
+  pdfrx: ^2.9.0
+  archive: ^4.0.0
+  crypto: ^3.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
