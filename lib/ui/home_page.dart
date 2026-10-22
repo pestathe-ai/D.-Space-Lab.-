@@ -8,7 +8,9 @@ import 'app_state.dart';
 import 'apps_page.dart';
 import 'cleanup_page.dart';
 import 'docs_page.dart';
+import 'doc_tools_page.dart';
 import 'duplicates_page.dart';
+import 'origin_page.dart';
 import 'photos_page.dart';
 import 'schedule_page.dart';
 import 'whatsapp_page.dart';
@@ -310,7 +312,7 @@ class _Dashboard extends StatelessWidget {
                 for (final k in kinds)
                   _legend(context, kindColor(k), k.label,
                       '${formatBytes(idx.kindTotals[k]!)} · ${idx.kindCounts[k]} file',
-                      onTap: () => _go(context, LargestPage(state: s, kind: k))),
+                      onTap: () => _go(context, OriginPage(state: s, kind: k))),
                 _legend(context, Theme.of(context).colorScheme.outlineVariant,
                     'App e sistema', '${formatBytes(systemApps)} · non accessibili'),
               ],
@@ -364,6 +366,12 @@ class _Dashboard extends StatelessWidget {
           onTap: () => _go(context, ExplorePage(state: s, dir: s.root)),
         ),
         _Tile(
+          icon: Icons.account_tree_outlined,
+          title: 'Da dove arrivano i file',
+          subtitle: 'Tutti i file per provenienza, con un consiglio',
+          onTap: () => _go(context, OriginPage(state: s)),
+        ),
+        _Tile(
           icon: Icons.sort,
           title: 'File più grandi',
           subtitle: 'I 200 file che pesano di più',
@@ -396,6 +404,12 @@ class _Dashboard extends StatelessWidget {
                   onPressed: s.analyzeDocs, child: const Text('Riprendi')),
             ),
           ),
+        _Tile(
+          icon: Icons.handyman_outlined,
+          title: 'Strumenti documenti',
+          subtitle: 'Versioni, dimenticati, illeggibili, datati e altro',
+          onTap: () => _go(context, DocToolsPage(state: s)),
+        ),
         _Tile(
           icon: Icons.event_busy_outlined,
           title: 'Documenti scaduti',

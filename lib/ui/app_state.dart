@@ -10,6 +10,7 @@ import '../core/doc_classifier.dart';
 import '../core/duplicates.dart';
 import '../core/eta.dart';
 import '../core/file_types.dart';
+import '../core/origin.dart';
 import '../core/storage_index.dart';
 import '../services/doc_analyzer.dart';
 import '../services/jobs.dart';
@@ -291,7 +292,26 @@ class AppState extends ChangeNotifier {
       _cacheKeyEmpty = emptyDirs;
       _junk = null;
       _residues = null;
+      _origins.clear();
+      _originGroups.clear();
     }
+  }
+
+  final Map<String, Origin> _origins = {};
+  final Map<FileKind?, List<OriginGroup>> _originGroups = {};
+
+  /// Provenienza di un file (calcolata una volta sola).
+  Origin originFor(FileEntry f) {
+    _checkCache();
+    return _origins[f.path] ??= originOf(root, f.path);
+  }
+
+  /// File di un tipo divisi per provenienza.
+  List<OriginGroup> originGroups(FileKind? kind) {
+    if (index == null) return const [];
+    _checkCache();
+    return _originGroups[kind] ??=
+        groupByOrigin(root, index!.files, kind: kind, of: originFor);
   }
 
   List<JunkGroup> get junk {

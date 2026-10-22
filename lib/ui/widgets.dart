@@ -345,3 +345,54 @@ Future<bool?> askDeleteMode(BuildContext context,
     ),
   );
 }
+
+/// Pulsante in basso che chiede: nel cestino o eliminare subito.
+class CleanBar extends StatelessWidget {
+  const CleanBar({
+    super.key,
+    required this.paths,
+    required this.state,
+    this.onDone,
+    this.suggestNow = false,
+  });
+  final Set<String> paths;
+  final AppState state;
+  final VoidCallback? onDone;
+  final bool suggestNow;
+
+  @override
+  Widget build(BuildContext context) {
+    final sizes = state.index?.sizeOf ?? const <String, int>{};
+    final bytes = paths.fold<int>(0, (s, p) => s + (sizes[p] ?? 0));
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: FilledButton.icon(
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.error,
+            minimumSize: const Size.fromHeight(50),
+          ),
+          onPressed: paths.isEmpty
+              ? null
+              : () async {
+                  final now = await askDeleteMode(context,
+                      count: paths.length, bytes: bytes, suggestNow: suggestNow);
+                  if (now == null) return;
+                  final r = await state.clean(paths.toList(), const {}, now: now);
+                  onDone?.call();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(now
+                            ? '${r.count} file eliminati · liberati ${formatBytes(r.freed)}'
+                            : '${r.count} file nel cestino')));
+                  }
+                },
+          icon: const Icon(Icons.delete_outline),
+          label: Text(paths.isEmpty
+              ? 'Seleziona i file da togliere'
+              : 'Togli ${paths.length} · ${formatBytes(bytes)}'),
+        ),
+      ),
+    );
+  }
+}
