@@ -1,6 +1,6 @@
 # Note per continuare lo sviluppo
 
-Stato: **v0.2.1 compilata** (build-4). La v0.2 (build-3) si chiudeva all'avvio: R8 toglieva il costruttore di WorkDatabase_Impl. Corretto con regole in proguard-rules.pro + WorkManager avviato su richiesta (SpaceLabApp). Dopo ogni build controllare l'APK con androguard se si toccano librerie native.
+Stato: **v0.3 compilata** (build-5; v0.2.1 era build-4). La v0.2 (build-3) si chiudeva all'avvio: R8 toglieva il costruttore di WorkDatabase_Impl. Corretto con regole in proguard-rules.pro + WorkManager avviato su richiesta (SpaceLabApp). Dopo ogni build controllare l'APK con androguard se si toccano librerie native.
 
 ## Com'è fatto
 - Flutter, compilato su GitHub Actions (`.github/workflows/build-apk.yml`), APK firmato con la chiave di sviluppo in `tool/signing/`.

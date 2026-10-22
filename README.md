@@ -2,6 +2,13 @@
 
 Pulizia del telefono, in stile Dom Studio. Tutto offline, tutto sul telefono.
 
+## Novità v0.3
+- **Da dove arrivano**: tocca un tipo di file (es. Immagini) e vedi i file divisi per provenienza (Fotocamera, Screenshot, WhatsApp, Sticker, Telegram, Download, file delle app, Miniature…), ognuna con un consiglio: sicuro / da controllare / tuoi.
+- **Per peso**: piccolissimi, medi, grandi — spiega perché i file sono tanti ma pesano poco.
+- **Scorciatoie** per tipo: screenshot vecchi, video WhatsApp, vocali vecchi, installer già usati, archivi scaricati.
+- **Strumenti documenti**: versioni dello stesso file, scaricati e dimenticati, ricevuti su WhatsApp, con date vecchie, vuoti o illeggibili, molto pesanti. Gli importanti sono sempre esclusi.
+- Ogni elenco ha filtri per cartella ed età, ordinamento, "Tutti", e la scelta tra cestino ed eliminazione subito.
+
 ## Novità v0.2
 - **Stima del tempo**: ogni lavoro lungo mostra quanto manca e quanto è passato. La mappa compare subito; i documenti si leggono in sottofondo (si può fermare e riprendere).
 - **Pulizia rapida**: miniature, log, temporanei, download interrotti, installer già usati, cestino della Galleria, cartelle vuote. Più i **residui di app disinstallate** (Android/media e cartelle con nome di app).
