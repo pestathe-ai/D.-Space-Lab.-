@@ -8,3 +8,4 @@ build/
 pubspec.lock
 *.iml
 .idea/
+__pycache__/
