@@ -71,33 +71,39 @@ class DocAnalyzer {
     final docs = files.where((f) => f.kind == FileKind.document).toList();
     final cache = await _Cache.load();
     final out = <AnalyzedDoc>[];
+    final toRead = <FileEntry>[];
+    // I documenti già letti in passato non costano nulla: li conto a parte,
+    // così l'avanzamento (e la stima del tempo) riguarda solo quelli nuovi.
+    for (final f in docs) {
+      final c = cache.map[_key(f)];
+      if (c is Map<String, dynamic>) {
+        out.add(AnalyzedDoc(f, DocFacts.fromJson(c))..hash = c['h'] as String?);
+      } else {
+        toRead.add(f);
+      }
+    }
+    onProgress(0, toRead.length);
     TextRecognizer? ocr;
     var done = 0, sinceSave = 0;
 
     try {
-      for (final f in docs) {
+      for (final f in toRead) {
         if (isCancelled?.call() ?? false) break;
-        final k = _key(f);
-        final c = cache.map[k];
-        if (c is Map<String, dynamic>) {
-          out.add(AnalyzedDoc(f, DocFacts.fromJson(c))..hash = c['h'] as String?);
-        } else {
-          var text = '';
-          try {
-            if (f.size <= _maxBytes) {
-              text = await _extract(f, () => ocr ??= TextRecognizer());
-            }
-          } catch (_) {}
-          final facts = extractFacts(text);
-          out.add(AnalyzedDoc(f, facts));
-          cache.map[k] = facts.toJson();
-          if (++sinceSave >= 50) {
-            sinceSave = 0;
-            await cache.save(cache.map.keys.toSet());
+        var text = '';
+        try {
+          if (f.size <= _maxBytes) {
+            text = await _extract(f, () => ocr ??= TextRecognizer());
           }
+        } catch (_) {}
+        final facts = extractFacts(text);
+        out.add(AnalyzedDoc(f, facts));
+        cache.map[_key(f)] = facts.toJson();
+        if (++sinceSave >= 50) {
+          sinceSave = 0;
+          await cache.save(cache.map.keys.toSet());
         }
         done++;
-        if (done % 3 == 0 || done == docs.length) onProgress(done, docs.length);
+        onProgress(done, toRead.length);
       }
     } finally {
       await ocr?.close();

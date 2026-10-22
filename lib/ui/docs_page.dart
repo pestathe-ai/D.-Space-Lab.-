@@ -38,7 +38,7 @@ class _DocsPageState extends State<DocsPage> {
           final expired = s.docsWith(DocVerdict.expired);
           final important = s.docsWith(DocVerdict.important);
           final dups = s.duplicateGroups;
-          if (!_dupInit) {
+          if (!_dupInit && s.docs != null) {
             _dupInit = true;
             for (final g in dups) {
               selected.addAll(g.skip(1).map((d) => d.file.path));
@@ -59,7 +59,21 @@ class _DocsPageState extends State<DocsPage> {
               state: s,
               onDone: () => setState(selected.clear),
             ),
-            body: TabBarView(children: [
+            body: s.docs == null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: s.docsProgress.running
+                          ? ProgressPanel(
+                              progress: s.docsProgress,
+                              countText: '${s.docsProgress.done} di '
+                                  '${s.docsProgress.total} documenti nuovi',
+                              note: 'Le schede si riempiono appena finisco.',
+                            )
+                          : const Text('Lettura dei documenti non ancora fatta.'),
+                    ),
+                  )
+                : TabBarView(children: [
               _expiredTab(context, expired),
               _dupTab(context, dups),
               _importantTab(context, important),

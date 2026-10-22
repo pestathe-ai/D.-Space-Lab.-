@@ -4,7 +4,13 @@ import '../core/doc_classifier.dart';
 import '../core/file_types.dart';
 import '../services/native.dart';
 import 'app_state.dart';
+import 'apps_page.dart';
+import 'cleanup_page.dart';
 import 'docs_page.dart';
+import 'duplicates_page.dart';
+import 'photos_page.dart';
+import 'schedule_page.dart';
+import 'whatsapp_page.dart';
 import 'explore_page.dart';
 import 'trash_page.dart';
 import 'widgets.dart';
@@ -126,30 +132,18 @@ class _Progress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final frac = state.total == 0 ? null : state.done / state.total;
+    final p = state.scanProgress;
+    final firstTime = state.expectedFiles == null;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('${state.phase}…',
-                style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 20),
-            LinearProgressIndicator(
-                value: frac, minHeight: 8, borderRadius: BorderRadius.circular(4)),
-            const SizedBox(height: 12),
-            Text(state.total == 0
-                ? 'Un momento'
-                : '${state.done} di ${state.total} documenti'),
-            const SizedBox(height: 8),
-            const Text('I documenti già letti vengono saltati.',
-                style: TextStyle(fontSize: 12)),
-            if (state.total > 0)
-              TextButton(
-                  onPressed: state.cancel,
-                  child: const Text('Salta il resto per ora')),
-          ],
+        padding: const EdgeInsets.all(28),
+        child: ProgressPanel(
+          progress: p,
+          countText: '${p.done} file trovati',
+          note: firstTime
+              ? 'È la prima volta: la stima arriva dalla prossima analisi, '
+                  'che sarà anche più veloce.'
+              : 'Subito dopo vedi la mappa; i documenti si leggono in sottofondo.',
         ),
       ),
     );
@@ -246,6 +240,45 @@ class _Dashboard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
+        _section(context, 'PULIZIA'),
+        _Tile(
+          icon: Icons.cleaning_services_outlined,
+          title: 'Pulizia rapida',
+          subtitle: _quickSubtitle(s),
+          onTap: () => _go(context, CleanupPage(state: s)),
+        ),
+        _Tile(
+          icon: Icons.copy_all_outlined,
+          title: 'Duplicati di ogni file',
+          subtitle: s.fileDuplicates == null
+              ? (s.dupProgress.running
+                  ? 'Ricerca in corso${s.dupProgress.etaText == null ? '' : ' · ${s.dupProgress.etaText}'}'
+                  : 'Foto, video, musica e altro: stessi identici byte')
+              : '${s.fileDuplicates!.length} gruppi · '
+                  '${formatBytes(s.fileDuplicateWaste)} recuperabili',
+          onTap: () => _go(context, DuplicatesPage(state: s)),
+        ),
+        _Tile(
+          icon: Icons.chat_outlined,
+          title: 'WhatsApp a fondo',
+          subtitle: 'Vocali, video, documenti, GIF: per tipo e data',
+          onTap: () => _go(context, WhatsAppPage(state: s)),
+        ),
+        _Tile(
+          icon: Icons.apps_outlined,
+          title: 'App: cache e inutilizzate',
+          subtitle: 'Quanto occupano, quali non usi più',
+          onTap: () => _go(context, AppsPage(state: s)),
+        ),
+        _Tile(
+          icon: Icons.photo_size_select_large_outlined,
+          title: 'Comprimi foto',
+          subtitle: s.photoProgress.running
+              ? 'In corso${s.photoProgress.etaText == null ? '' : ' · ${s.photoProgress.etaText}'}'
+              : 'Stesse foto, molto meno spazio',
+          onTap: () => _go(context, PhotosPage(state: s)),
+        ),
+        _section(context, 'ESPLORA'),
         _Tile(
           icon: Icons.folder_outlined,
           title: 'Esplora cartelle',
@@ -258,55 +291,96 @@ class _Dashboard extends StatelessWidget {
           subtitle: 'I 200 file che pesano di più',
           onTap: () => _go(context, LargestPage(state: s)),
         ),
+        _section(context, 'DOCUMENTI'),
+        if (s.docsProgress.running)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: ProgressPanel(
+                progress: s.docsProgress,
+                countText: s.docsProgress.total == 0
+                    ? 'Preparo l\'elenco'
+                    : '${s.docsProgress.done} di ${s.docsProgress.total} documenti nuovi',
+                note: 'Puoi usare il resto dell\'app intanto. '
+                    'I documenti già letti vengono saltati.',
+                onStop: s.stopDocs,
+                stopLabel: 'Ferma per ora',
+              ),
+            ),
+          )
+        else if (s.docsStopped)
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.pause_circle_outline),
+              title: const Text('Lettura documenti in pausa'),
+              subtitle: const Text('Riprende da dove era rimasta'),
+              trailing: FilledButton(
+                  onPressed: s.analyzeDocs, child: const Text('Riprendi')),
+            ),
+          ),
         _Tile(
           icon: Icons.event_busy_outlined,
           title: 'Documenti scaduti',
-          subtitle: '${expired.length} biglietti, prenotazioni, coupon',
+          subtitle: s.docs == null
+              ? 'Pronti dopo la lettura'
+              : '${expired.length} biglietti, prenotazioni, coupon',
           onTap: () => _go(context, DocsPage(state: s)),
         ),
         _Tile(
           icon: Icons.file_copy_outlined,
           title: 'Documenti doppi',
-          subtitle: '${s.duplicateGroups.length} gruppi · '
-              '${formatBytes(s.duplicateWaste)} recuperabili',
+          subtitle: s.docs == null
+              ? 'Pronti dopo la lettura'
+              : '${s.duplicateGroups.length} gruppi · '
+                  '${formatBytes(s.duplicateWaste)} recuperabili',
           onTap: () => _go(context, DocsPage(state: s, initial: 1)),
         ),
         _Tile(
           icon: Icons.verified_outlined,
           title: 'Documenti importanti',
-          subtitle: '${important.length} da conservare',
+          subtitle: s.docs == null
+              ? 'Pronti dopo la lettura'
+              : '${important.length} da conservare',
           onTap: () => _go(context, DocsPage(state: s, initial: 2)),
         ),
+        _section(context, 'SICUREZZA'),
         _Tile(
           icon: Icons.delete_outline,
           title: 'Cestino',
           subtitle: s.trashItems.isEmpty
               ? 'Vuoto'
-              : '${s.trashItems.length} file · ${formatBytes(s.trashBytes)}',
+              : '${s.trashItems.length} elementi · ${formatBytes(s.trashBytes)}',
           onTap: () => _go(context, TrashPage(state: s)),
         ),
-        const SizedBox(height: 8),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('IN ARRIVO', style: t.labelMedium?.copyWith(letterSpacing: 1.4)),
-                const SizedBox(height: 8),
-                const Text(
-                  'Residui di app disinstallate · File di sistema inutili · '
-                  'Duplicati di ogni tipo · WhatsApp a fondo · Cache delle app · '
-                  'App inutilizzate · Compressione foto · Pulizia programmata',
-                ),
-              ],
-            ),
-          ),
+        _Tile(
+          icon: Icons.event_repeat_outlined,
+          title: 'Pulizia programmata',
+          subtitle: 'Svuota il cestino scaduto e le miniature, con un avviso',
+          onTap: () => _go(context, SchedulePage(state: s)),
         ),
         const Signature(),
       ],
     );
   }
+
+  String _quickSubtitle(AppState s) {
+    final j = s.junk;
+    final r = s.residues;
+    final bytes = j.fold<int>(0, (a, g) => a + g.bytes) +
+        r.fold<int>(0, (a, e) => a + e.bytes);
+    final n = j.fold<int>(0, (a, g) => a + g.paths.length) + r.length;
+    if (n == 0) return 'Niente da pulire: ottimo!';
+    return '$n elementi inutili · ${formatBytes(bytes)}';
+  }
+
+  Widget _section(BuildContext context, String text) => Padding(
+        padding: const EdgeInsets.fromLTRB(4, 14, 4, 8),
+        child: Text(text,
+            style: Theme.of(context)
+                .textTheme
+                .labelMedium
+                ?.copyWith(letterSpacing: 1.4)),
+      );
 
   Widget _legend(BuildContext context, Color c, String label, String value,
           {VoidCallback? onTap}) =>

@@ -76,9 +76,14 @@ bool isExcluded(String root, String path) {
 }
 
 /// Percorre la memoria (da chiamare in un isolate: è lento).
-List<FileEntry> walkStorage(String root) {
+///
+/// [emptyDirs] riceve le cartelle senza nulla dentro; [onCount] viene
+/// chiamato ogni tanto con il numero di file trovati finora.
+List<FileEntry> walkStorage(String root,
+    {List<String>? emptyDirs, void Function(int files)? onCount}) {
   final out = <FileEntry>[];
   final stack = <Directory>[Directory(root)];
+  var lastReport = 0;
   while (stack.isNotEmpty) {
     final dir = stack.removeLast();
     List<FileSystemEntity> items;
@@ -87,6 +92,7 @@ List<FileEntry> walkStorage(String root) {
     } catch (_) {
       continue;
     }
+    if (items.isEmpty && dir.path != root) emptyDirs?.add(dir.path);
     for (final e in items) {
       if (isExcluded(root, e.path)) continue;
       if (e is Directory) {
@@ -99,6 +105,11 @@ List<FileEntry> walkStorage(String root) {
         } catch (_) {}
       }
     }
+    if (onCount != null && out.length - lastReport >= 400) {
+      lastReport = out.length;
+      onCount(out.length);
+    }
   }
+  onCount?.call(out.length);
   return out;
 }

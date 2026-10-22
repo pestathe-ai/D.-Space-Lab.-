@@ -219,3 +219,129 @@ class Signature extends StatelessWidget {
     );
   }
 }
+
+/// Avanzamento di un lavoro lungo: barra, conteggio, tempo trascorso e stima.
+class ProgressPanel extends StatelessWidget {
+  const ProgressPanel({
+    super.key,
+    required this.progress,
+    required this.countText,
+    this.onStop,
+    this.stopLabel = 'Ferma',
+    this.note,
+  });
+
+  final Progress progress;
+  final String countText;
+  final VoidCallback? onStop;
+  final String stopLabel;
+  final String? note;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final cs = Theme.of(context).colorScheme;
+    final eta = progress.etaText;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('${progress.phase}…', style: t.titleMedium),
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
+            value: progress.fraction,
+            minHeight: 8,
+            backgroundColor: cs.outlineVariant.withValues(alpha: 0.5),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(child: Text(countText, style: t.bodyMedium)),
+            if (progress.fraction != null)
+              Text('${(progress.fraction! * 100).floor()}%',
+                  style: t.labelLarge),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Icon(Icons.schedule, size: 16, color: cs.secondary),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                eta == null
+                    ? 'Calcolo il tempo che manca… (trascorsi ${progress.elapsedText})'
+                    : 'Mancano $eta · trascorsi ${progress.elapsedText}',
+                style: t.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+        if (note != null) ...[
+          const SizedBox(height: 6),
+          Text(note!, style: t.bodySmall),
+        ],
+        if (onStop != null)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(onPressed: onStop, child: Text(stopLabel)),
+          ),
+      ],
+    );
+  }
+}
+
+/// Scheda informativa con icona, usata nelle schermate introduttive.
+class InfoCard extends StatelessWidget {
+  const InfoCard({super.key, required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: cs.primary),
+            const SizedBox(width: 12),
+            Expanded(child: Text(text)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Chiede come eliminare: nel cestino (recuperabile) o subito.
+/// Restituisce null se l'utente annulla, true per "subito".
+Future<bool?> askDeleteMode(BuildContext context,
+    {required int count, required int bytes, bool suggestNow = false}) {
+  return showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: Text('Pulire $count element${count == 1 ? 'o' : 'i'}?'),
+      content: Text(
+        'Puoi spostarli nel cestino (recuperabili per 30 giorni) oppure '
+        'eliminarli subito e liberare ${formatBytes(bytes)} adesso.'
+        '${suggestNow ? '\n\nSono file che il telefono non usa: eliminarli subito è sicuro.' : ''}',
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(c), child: const Text('Annulla')),
+        TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Nel cestino')),
+        FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Elimina subito')),
+      ],
+    ),
+  );
+}

@@ -1,5 +1,7 @@
 import 'package:flutter/services.dart';
 
+import '../core/apps.dart';
+
 class Native {
   static const _ch = MethodChannel('dspacelab/native');
 
@@ -34,4 +36,66 @@ class Native {
       return false;
     }
   }
+
+  // ---- app ----
+  static Future<Set<String>> installedPackages() async {
+    try {
+      final l = await _ch.invokeListMethod<String>('installedPackages');
+      return {...?l};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Tra questi APK, quelli la cui app è già installata.
+  static Future<Set<String>> installedApks(List<String> paths) async {
+    if (paths.isEmpty) return {};
+    try {
+      final l = await _ch.invokeListMethod<String>('installedApks', {'paths': paths});
+      return {...?l};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static Future<bool> hasUsageAccess() async =>
+      (await _ch.invokeMethod<bool>('hasUsageAccess')) ?? false;
+  static Future<void> requestUsageAccess() =>
+      _ch.invokeMethod('requestUsageAccess');
+
+  static Future<List<AppInfo>> appsInfo() async {
+    final l = await _ch.invokeListMethod<Map<dynamic, dynamic>>('appsInfo');
+    return [for (final m in l ?? const <Map<dynamic, dynamic>>[]) AppInfo.fromMap(m)];
+  }
+
+  static Future<void> openAppSettings(String pkg) =>
+      _ch.invokeMethod('openAppSettings', {'pkg': pkg});
+  static Future<void> uninstall(String pkg) =>
+      _ch.invokeMethod('uninstall', {'pkg': pkg});
+
+  // ---- foto ----
+  /// Nuova dimensione in byte, o -1 se la foto non si è potuta leggere.
+  static Future<int> compressJpeg(String src, String dst,
+          {required int quality, required int maxSide}) async =>
+      (await _ch.invokeMethod<int>('compressJpeg', {
+        'src': src,
+        'dst': dst,
+        'quality': quality,
+        'maxSide': maxSide,
+      })) ??
+      -1;
+
+  // ---- notifiche e pulizia programmata ----
+  static Future<bool> hasNotifications() async =>
+      (await _ch.invokeMethod<bool>('hasNotifications')) ?? false;
+  static Future<void> requestNotifications() =>
+      _ch.invokeMethod('requestNotifications');
+
+  static Future<Map<String, dynamic>> getSchedule() async =>
+      (await _ch.invokeMapMethod<String, dynamic>('getSchedule')) ?? {};
+  static Future<void> setSchedule(
+          {required bool enabled, required int days, required bool thumbs}) =>
+      _ch.invokeMethod(
+          'setSchedule', {'enabled': enabled, 'days': days, 'thumbs': thumbs});
+  static Future<void> runCleanupNow() => _ch.invokeMethod('runCleanupNow');
 }

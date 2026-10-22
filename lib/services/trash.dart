@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-/// Un file nel cestino dell'app.
+/// Un file (o una cartella intera) nel cestino dell'app.
 class TrashItem {
   TrashItem(this.trashPath, this.originalPath, this.size, this.deletedMs);
   final String trashPath;
@@ -62,12 +62,16 @@ class Trash {
     final t = (now ?? DateTime.now()).millisecondsSinceEpoch;
     var n = 0;
     for (final p in paths) {
-      final f = File(p);
       try {
-        final size = await f.length();
+        final isDir = await FileSystemEntity.isDirectory(p);
+        final size = isDir ? await _dirSize(p) : await File(p).length();
         final name = p.substring(p.lastIndexOf('/') + 1);
         final dest = '$dir/${t}_${n++}_$name';
-        await f.rename(dest);
+        if (isDir) {
+          await Directory(p).rename(dest);
+        } else {
+          await File(p).rename(dest);
+        }
         items.add(TrashItem(dest, p, size, t));
         moved.add(p);
       } catch (_) {}
@@ -84,14 +88,19 @@ class Trash {
     for (final it in items.where((i) => keys.contains(i.trashPath)).toList()) {
       try {
         var target = it.originalPath;
-        if (await File(target).exists()) {
+        if (await FileSystemEntity.type(target) !=
+            FileSystemEntityType.notFound) {
           final dot = target.lastIndexOf('.');
           target = dot > target.lastIndexOf('/')
               ? '${target.substring(0, dot)} (ripristinato)${target.substring(dot)}'
               : '$target (ripristinato)';
         }
         await File(target).parent.create(recursive: true);
-        await File(it.trashPath).rename(target);
+        if (await FileSystemEntity.isDirectory(it.trashPath)) {
+          await Directory(it.trashPath).rename(target);
+        } else {
+          await File(it.trashPath).rename(target);
+        }
         items.remove(it);
         restored.add(target);
       } catch (_) {}
@@ -107,14 +116,31 @@ class Trash {
     var freed = 0;
     for (final it in items.where((i) => keys.contains(i.trashPath)).toList()) {
       try {
-        final f = File(it.trashPath);
-        if (await f.exists()) await f.delete();
+        if (await FileSystemEntity.isDirectory(it.trashPath)) {
+          await Directory(it.trashPath).delete(recursive: true);
+        } else {
+          final f = File(it.trashPath);
+          if (await f.exists()) await f.delete();
+        }
         freed += it.size;
         items.remove(it);
       } catch (_) {}
     }
     await _write(items);
     return freed;
+  }
+
+  static Future<int> _dirSize(String path) async {
+    var total = 0;
+    await for (final e
+        in Directory(path).list(recursive: true, followLinks: false)) {
+      if (e is File) {
+        try {
+          total += await e.length();
+        } catch (_) {}
+      }
+    }
+    return total;
   }
 
   /// Svuota da solo ciò che è nel cestino da più di [keepDays] giorni.
