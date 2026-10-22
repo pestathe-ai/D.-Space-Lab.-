@@ -1,6 +1,6 @@
 # Note per continuare lo sviluppo
 
-Stato: **v0.1 scritta ma mai compilata** (la prima build su GitHub Actions va ancora fatta e verificata).
+Stato: **v0.1 compilata** (build-2 verde: analisi, test e APK firmato). Non ancora provata su un telefono vero.
 
 ## Com'è fatto
 - Flutter, compilato su GitHub Actions (`.github/workflows/build-apk.yml`), APK firmato con la chiave di sviluppo in `tool/signing/`.
