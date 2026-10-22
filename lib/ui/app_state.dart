@@ -35,7 +35,7 @@ ProgressJob<List<List<FileEntry>>> _duplicatesJob(List<FileEntry> files) =>
 Future<StorageIndex> _buildIndex(String root, List<FileEntry> files) =>
     Isolate.run(() => StorageIndex(root, files));
 
-enum Status { checking, unsupported, needPermission, scanning, ready }
+enum Status { checking, unsupported, needPermission, scanning, ready, error }
 
 /// Un lavoro lungo con avanzamento e stima del tempo.
 class Progress {
@@ -104,7 +104,29 @@ class AppState extends ChangeNotifier {
 
   int get trashBytes => trashItems.fold(0, (s, i) => s + i.size);
 
+  /// Ultimo errore grave della volta precedente (da mostrare una volta).
+  String? crashReport;
+
+  /// Errore che ha fermato l'analisi.
+  String? errorText;
+
   Future<void> start() async {
+    crashReport ??= await Native.lastCrash();
+    try {
+      await _start();
+    } catch (e, st) {
+      _fail(e, st);
+    }
+  }
+
+  void _fail(Object e, StackTrace st) {
+    errorText = '$e\n\n${st.toString().split('\n').take(12).join('\n')}';
+    scanProgress.stop();
+    status = Status.error;
+    notifyListeners();
+  }
+
+  Future<void> _start() async {
     if (await Native.sdkInt() < 30) {
       status = Status.unsupported;
       notifyListeners();
@@ -151,6 +173,14 @@ class AppState extends ChangeNotifier {
 
   Future<void> scan() async {
     if (status == Status.scanning) return;
+    try {
+      await _scan();
+    } catch (e, st) {
+      _fail(e, st);
+    }
+  }
+
+  Future<void> _scan() async {
     _cancelDocs = true; // una lettura documenti in corso riparte dopo
     status = Status.scanning;
     scanProgress.start('Misuro lo spazio');

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/doc_classifier.dart';
 import '../core/file_types.dart';
@@ -66,10 +67,78 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           Status.needPermission => const _Permission(),
           Status.scanning => _Progress(state: s),
           Status.ready => _Dashboard(state: s),
+          Status.error => _ErrorView(state: s),
         },
       ),
     );
   }
+}
+
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.state});
+  final AppState state;
+
+  @override
+  Widget build(BuildContext context) => ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          const Icon(Icons.error_outline, size: 56),
+          const SizedBox(height: 12),
+          const Text('Qualcosa è andato storto durante l\'analisi.',
+              textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: () {
+              state.status = Status.checking;
+              state.start();
+            },
+            child: const Text('Riprova'),
+          ),
+          const SizedBox(height: 8),
+          CrashCard(title: 'Dettagli per lo sviluppatore', text: state.errorText ?? ''),
+        ],
+      );
+}
+
+/// Mostra un errore con il tasto per copiarlo.
+class CrashCard extends StatelessWidget {
+  const CrashCard({super.key, required this.title, required this.text, this.onClose});
+  final String title;
+  final String text;
+  final VoidCallback? onClose;
+
+  @override
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              Text(text,
+                  maxLines: 8,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11, fontFamily: 'monospace')),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: text));
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Copiato: incollalo nella chat con Claude')));
+                    },
+                    child: const Text('Copia'),
+                  ),
+                  if (onClose != null)
+                    TextButton(onPressed: onClose, child: const Text('Chiudi')),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
 }
 
 class _Message extends StatelessWidget {
@@ -175,6 +244,15 @@ class _Dashboard extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (s.crashReport != null)
+          CrashCard(
+            title: 'L\'ultima volta l\'app si è chiusa per un errore',
+            text: s.crashReport!,
+            onClose: () {
+              s.crashReport = null;
+              s.refreshFree();
+            },
+          ),
         // Scheda "eroe": l'unico gradiente ammesso, blu-casa → arancio-tetto.
         Container(
           padding: const EdgeInsets.all(20),

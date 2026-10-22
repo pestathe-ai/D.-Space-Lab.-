@@ -5,6 +5,15 @@ import '../core/apps.dart';
 class Native {
   static const _ch = MethodChannel('dspacelab/native');
 
+  /// Testo dell'ultimo errore grave (se l'app si era chiusa da sola).
+  static Future<String?> lastCrash() async {
+    try {
+      return await _ch.invokeMethod<String>('lastCrash');
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<int> sdkInt() async =>
       (await _ch.invokeMethod<int>('sdkInt')) ?? 0;
   static Future<bool> hasAllFiles() async =>

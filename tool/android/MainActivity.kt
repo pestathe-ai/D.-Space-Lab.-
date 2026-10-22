@@ -55,6 +55,17 @@ class MainActivity : FlutterActivity() {
                 when (call.method) {
                     "sdkInt" -> result.success(Build.VERSION.SDK_INT)
 
+                    "lastCrash" -> {
+                        val f = File(filesDir, SpaceLabApp.CRASH_FILE)
+                        val text = try {
+                            if (f.exists()) f.readText() else null
+                        } catch (e: Exception) {
+                            null
+                        }
+                        f.delete()
+                        result.success(text)
+                    }
+
                     "hasAllFiles" -> result.success(Environment.isExternalStorageManager())
 
                     "requestAllFiles" -> {
@@ -182,13 +193,21 @@ class MainActivity : FlutterActivity() {
                             .putInt("days", days)
                             .putBoolean("thumbs", thumbs)
                             .apply()
-                        CleanupWorker.schedule(applicationContext, enabled, days)
-                        result.success(null)
+                        try {
+                            CleanupWorker.schedule(applicationContext, enabled, days)
+                            result.success(null)
+                        } catch (e: Exception) {
+                            result.error("work", e.message, null)
+                        }
                     }
 
                     "runCleanupNow" -> {
-                        CleanupWorker.runOnce(applicationContext)
-                        result.success(null)
+                        try {
+                            CleanupWorker.runOnce(applicationContext)
+                            result.success(null)
+                        } catch (e: Exception) {
+                            result.error("work", e.message, null)
+                        }
                     }
 
                     else -> result.notImplemented()

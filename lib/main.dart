@@ -7,6 +7,14 @@ import 'ui/home_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Invece della schermata grigia, un messaggio leggibile.
+  ErrorWidget.builder = (d) => Material(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text('Errore: ${d.exceptionAsString()}',
+              style: const TextStyle(fontSize: 12)),
+        ),
+      );
   await pdfrxFlutterInitialize();
   runApp(const SpaceLabApp());
 }
